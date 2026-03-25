@@ -113,6 +113,36 @@
                 <div class="stat-chart"><canvas id="categoryChart"></canvas></div>
             </div>
 
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>From:</label>
+                    <input type="date" id="filter-date-start" onchange="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>To:</label>
+                    <input type="date" id="filter-date-end" onchange="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Category:</label>
+                    <select id="filter-category" onchange="applyFilters()">
+                        <option value="ALL">All Categories</option>
+                        <option value="Grocery">Grocery</option>
+                        <option value="Medicines">Medicines</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="snacks">snacks</option>
+                        <option value="travel">travel</option>
+                        <option value="shopping">shopping</option>
+                        <option value="Utility">Utility</option>
+                        <option value="Fruits">Fruits</option>
+                        <option value="hospital">hospital</option>
+                        <option value="Fuel">Fuel</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Others">Others</option>
+                    </select>
+                </div>
+                <button class="btn-reset" id="reset-filters" onclick="resetFilters()">Reset All</button>
+            </div>
+
             <div class="table-container">
                 <table id="expense-table">
                     <thead>

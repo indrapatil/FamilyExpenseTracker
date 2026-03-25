@@ -99,3 +99,45 @@ th { background: #f8fafc; font-size: 0.75rem; text-transform: uppercase; color: 
     .sidebar { width: 100%; position: static; height: auto; }
     .main-content { padding: 20px; }
 }
+
+/* V4 Interactivity Styles */
+.filter-bar {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.filter-group label { color: var(--text-muted); }
+.filter-group input, .filter-group select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    outline: none;
+    font-size: 0.85rem;
+}
+.btn-reset {
+    background: #f3f4f6;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.btn-reset:hover { background: #fee2e2; color: var(--danger); }
+

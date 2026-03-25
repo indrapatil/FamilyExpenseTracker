@@ -20,6 +20,7 @@ let expenses = [];
 let currentView = 'current';
 let selectedArchiveId = null;
 let myChart = null;
+let activeFilters = { category: 'ALL', start: null, end: null };
 
 // DOM
 const loginUI = document.getElementById('login-ui');
@@ -197,21 +198,48 @@ window.deleteArchive = () => {
     });
 };
 
+// --- Filters ---
+
+window.applyFilters = () => {
+    activeFilters.start = document.getElementById('filter-date-start').value || null;
+    activeFilters.end = document.getElementById('filter-date-end').value || null;
+    activeFilters.category = document.getElementById('filter-category').value;
+    renderUI();
+};
+
+window.resetFilters = () => {
+    activeFilters = { category: 'ALL', start: null, end: null };
+    document.getElementById('filter-date-start').value = '';
+    document.getElementById('filter-date-end').value = '';
+    document.getElementById('filter-category').value = 'ALL';
+    renderUI();
+};
+
 // --- View Rendering ---
 
 function renderUI() {
     tbody.innerHTML = '';
     let total = 0;
-    let catData = {};
-    if (expenses.length === 0) {
+    let filteredCatData = {};
+
+    // Apply Filter Logic
+    const filtered = expenses.filter(e => {
+        const matchesCat = activeFilters.category === 'ALL' || e.category === activeFilters.category;
+        const matchesStart = !activeFilters.start || e.date >= activeFilters.start;
+        const matchesEnd = !activeFilters.end || e.date <= activeFilters.end;
+        return matchesCat && matchesStart && matchesEnd;
+    });
+
+    if (filtered.length === 0) {
         totalAmountEl.innerText = "₹ 0.00";
-        dateRangeEl.innerText = "Empty Report";
+        dateRangeEl.innerText = "No matching records";
         if(myChart) myChart.destroy();
         return;
     }
-    expenses.forEach(e => {
+
+    filtered.forEach(e => {
         total += e.amount;
-        catData[e.category] = (catData[e.category] || 0) + e.amount;
+        filteredCatData[e.category] = (filteredCatData[e.category] || 0) + e.amount;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</td>
@@ -223,25 +251,50 @@ function renderUI() {
         `;
         tbody.appendChild(tr);
     });
+
     totalAmountEl.innerText = `₹ ${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
-    dateRangeEl.innerText = `${new Date(expenses[expenses.length-1].date).toLocaleDateString('en-IN')} to ${new Date(expenses[0].date).toLocaleDateString('en-IN')}`;
-    updateChart(catData);
+    
+    const start = filtered[filtered.length-1].date;
+    const end = filtered[0].date;
+    dateRangeEl.innerText = `${new Date(start).toLocaleDateString('en-IN')} to ${new Date(end).toLocaleDateString('en-IN')}`;
+    
+    // Chart always reflects the FULL current report contexts but highlights the filter
+    const allReportCatData = {};
+    expenses.forEach(e => allReportCatData[e.category] = (allReportCatData[e.category]||0)+e.amount);
+    updateChart(allReportCatData);
 }
 
 function updateChart(data) {
     const ctx = document.getElementById('categoryChart').getContext('2d');
     const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
+    
     if(myChart) myChart.destroy();
+    
     myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sorted.map(s=>s[0]),
+            labels: sorted.map(s => s[0]),
             datasets: [{
-                data: sorted.map(s=>s[1]),
-                backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#22c55e','#64748b']
+                data: sorted.map(s => s[1]),
+                backgroundColor: sorted.map(s => s[0] === activeFilters.category ? '#4f46e5' : '#cbd5e1'),
+                borderRadius: 4
             }]
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        options: { 
+            maintainAspectRatio: false, 
+            plugins: { legend: { display: false } },
+            onClick: (evt, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index;
+                    const cat = sorted[idx][0];
+                    activeFilters.category = cat;
+                    document.getElementById('filter-category').value = cat;
+                    renderUI();
+                } else {
+                    resetFilters();
+                }
+            }
+        }
     });
 }
 
@@ -252,7 +305,7 @@ window.exportToExcel = () => {
     raw.push({ "Date": "GRAND TOTAL", "Amount": expenses.reduce((s,e)=>s+e.amount,0)});
     const sMap = {}; expenses.forEach(e => sMap[e.category] = (sMap[e.category]||0)+e.amount);
     const sum = Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(s=>({"Category":s[0], "Total":s[1]}));
-    const wb = XLSX.utils.book_new();
+    const wb = XLSX.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "Details");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sum), "Summary");
     XLSX.writeFile(wb, "Expense_Report.xlsx");
@@ -278,19 +331,18 @@ window.handleFileUpload = (event) => {
 
         const currentRef = ref(db, 'current_expenses');
         rows.forEach(row => {
-            // Flexible column mapping
             const cleanRow = {
                 date: parseExcelDate(row.Date || row.date),
                 category: normalizeCategory(row.Category || row.category || "Others"),
                 remarks: row.Description || row.Remarks || row.remarks || "Bulk upload",
                 amount: parseFloat(row.Amount || row.amount || 0),
-                spender: "Indra", // Default for bulk upload
+                spender: "Indra",
                 addedBy: "Excel Upload"
             };
             if (!isNaN(cleanRow.amount)) push(currentRef, cleanRow);
         });
-        alert("Upload Complete! Syncing to database...");
-        event.target.value = ''; // Reset input
+        alert("Upload Complete!");
+        event.target.value = '';
     };
     reader.readAsArrayBuffer(file);
 };
@@ -298,7 +350,6 @@ window.handleFileUpload = (event) => {
 function parseExcelDate(val) {
     if (val instanceof Date) return val.toISOString().split('T')[0];
     if (typeof val === 'string') {
-        // Try D/M or D/M/Y
         const parts = val.split(/[\/-]/);
         if (parts.length >= 2) {
             const d = parts[0].padStart(2, '0');
@@ -307,26 +358,25 @@ function parseExcelDate(val) {
             return `${y}-${m}-${d}`;
         }
     }
-    return new Date().toISOString().split('T')[0]; // Fallback
+    return new Date().toISOString().split('T')[0];
 }
 
 function normalizeCategory(cat) {
-    const c = cat.trim();
-    if (c.toLowerCase().includes("grocery")) return "Grocery";
-    if (c.toLowerCase().includes("hotel")) return "Hotel";
-    if (c.toLowerCase().includes("shopping")) return "shopping";
-    if (c.toLowerCase().includes("fuel") || c.toLowerCase().includes("petrol")) return "Fuel";
-    if (c.toLowerCase().includes("fruit")) return "Fruits";
-    if (c.toLowerCase().includes("med")) return "Medicines";
-    if (c.toLowerCase().includes("trave")) return "travel";
-    if (c.toLowerCase().includes("maint")) return "Maintenance";
+    const c = cat.trim().toLowerCase();
+    if (c.includes("grocery")) return "Grocery";
+    if (c.includes("hotel")) return "Hotel";
+    if (c.includes("shopping")) return "shopping";
+    if (c.includes("fuel") || c.includes("petrol")) return "Fuel";
+    if (c.includes("fruit")) return "Fruits";
+    if (c.includes("med")) return "Medicines";
+    if (c.includes("trave")) return "travel";
+    if (c.includes("maint")) return "Maintenance";
     return "Others";
 }
 
 // V3.3 One-time Data Fix for March
 window.wipeAndSeedMarch = () => {
-    if (!confirm("⚠️ This will WIPE the current report and fill it with the 76 March entries you provided. Correct?")) return;
-    
+    if (!confirm("⚠️ Wipe and Fix March Data?")) return;
     set(ref(db, 'current_expenses'), null).then(() => {
         const seedData = [
             {"date":"2026-03-08","category":"shopping","remarks":"Ira dress","amount":550},
@@ -407,10 +457,7 @@ window.wipeAndSeedMarch = () => {
             {"date":"2026-03-24","category":"Medicines","remarks":"","amount":120}
         ];
         const currentRef = ref(db, 'current_expenses');
-        seedData.forEach(item => {
-            push(currentRef, { ...item, spender: "Indra", addedBy: "Admin Fix" });
-        });
-        document.getElementById('data-fix-btn').style.display = 'none';
-        alert("Done! Your March history is restored.");
+        seedData.forEach(item => push(currentRef, { ...item, spender: "Indra", addedBy: "Admin Fix" }));
+        alert("Done!");
     });
 };
