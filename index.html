@@ -157,9 +157,11 @@
                 <div class="empty-state" id="empty-state">No data in this view.</div>
             </div>
             <div class="footer-actions">
-                <button class="btn-outline-lg" onclick="exportToExcel()">📥 Export Expense Report (XLSX)</button>
+                <button class="btn-outline-lg" onclick="triggerFileUpload()">📂 Bulk Upload (Excel/CSV)</button>
+                <button class="btn-outline-lg" onclick="exportToExcel()">📥 Export Report (XLSX)</button>
                 <button class="btn-success-lg" onclick="archiveCurrent()">📁 Archive & Start Fresh</button>
             </div>
+            <input type="file" id="bulk-file-input" style="display: none;" accept=".xlsx, .xls, .csv" onchange="handleFileUpload(event)">
         </main>
     </div>
 

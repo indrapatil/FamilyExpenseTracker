@@ -143,10 +143,23 @@ th { background: #f8fafc; font-size: 0.75rem; text-transform: uppercase; color: 
     .report-header { flex-direction: column; align-items: flex-start; gap: 5px; }
     .report-header h1 { font-size: 1.4rem; }
     .stat-value { font-size: 1.8rem; }
-    th:nth-child(4), td:nth-child(4) { display: none; } /* Hide remarks on very small screens */
     .filter-bar { padding: 10px; }
     .filter-group { font-size: 0.75rem; }
 }
+
+.spender-tag {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+    background: #4f46e5;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
 
 /* V4 Interactivity Styles */
 .filter-bar {

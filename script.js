@@ -240,10 +240,11 @@ function renderUI() {
     filtered.forEach(e => {
         total += e.amount;
         filteredCatData[e.category] = (filteredCatData[e.category] || 0) + e.amount;
+        const initial = e.spender === 'Indra' ? 'I' : (e.spender === 'Ragini' ? 'R' : 'O');
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</td>
-            <td><span class="spender-tag">${e.spender}</span></td>
+            <td><span class="spender-tag" title="${e.spender}">${initial}</span></td>
             <td><span class="category-pill">${e.category}</span></td>
             <td>${e.remarks}</td>
             <td class="text-right"><strong>₹${e.amount.toLocaleString('en-IN')}</strong></td>
