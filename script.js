@@ -51,13 +51,13 @@ loginForm.addEventListener('submit', (e) => {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-password').value;
     signInWithEmailAndPassword(auth, email, pass).catch(err => {
-        document.getElementById('login-error').innerText = "❌ Login Failed: " + err.message;
+        document.getElementById('login-error').innerText = "❌ " + err.message;
     });
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
 
-// --- Database Logic ---
+// --- Database Sync ---
 
 function loadApp() {
     setDefaultDate();
@@ -66,10 +66,8 @@ function loadApp() {
 
 function cleanupApp() {
     expenses = [];
-    const currentRef = ref(db, 'current_expenses');
-    const archivesRef = ref(db, 'archives');
-    off(currentRef);
-    off(archivesRef);
+    off(ref(db, 'current_expenses'));
+    off(ref(db, 'archives'));
 }
 
 function initSync() {
@@ -90,8 +88,8 @@ function initSync() {
 }
 
 function setDefaultDate() {
-    const dateInput = document.getElementById('exp-date');
-    if(dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    const d = document.getElementById('exp-date');
+    if(d) d.value = new Date().toISOString().split('T')[0];
 }
 
 window.switchView = (view) => {
@@ -100,15 +98,14 @@ window.switchView = (view) => {
     document.getElementById('view-archives-btn').classList.toggle('active', view === 'archives');
     document.getElementById('current-report-header').style.display = view === 'current' ? 'flex' : 'none';
     document.getElementById('archive-header').style.display = view === 'archives' ? 'flex' : 'none';
-    if (view === 'current') initSync();
+    if(view === 'current') initSync();
 };
 
 function updateArchiveSelector(data) {
-    archiveSelector.innerHTML = '<option value="">Select an Archive...</option>';
+    archiveSelector.innerHTML = '<option value="">Select Archive...</option>';
     if (data) Object.keys(data).forEach(id => {
         const opt = document.createElement('option');
-        opt.value = id;
-        opt.innerText = data[id].name;
+        opt.value = id; opt.innerText = data[id].name;
         archiveSelector.appendChild(opt);
     });
 }
@@ -146,7 +143,7 @@ expenseForm.addEventListener('submit', (e) => {
 
 window.archiveCurrent = () => {
     if (expenses.length === 0) return;
-    const name = prompt("Name this archive (e.g. March 2026):");
+    const name = prompt("Archive name (e.g. March 2026):");
     if (!name) return;
     const key = push(ref(db, 'archives')).key;
     const dataObj = {};
@@ -156,11 +153,9 @@ window.archiveCurrent = () => {
     });
     set(ref(db, `archives/${key}`), { name, data: dataObj, timestamp: Date.now() }).then(() => {
         set(ref(db, 'current_expenses'), null);
-        alert("Archived successfully!");
+        alert("Archived!");
     });
 };
-
-// --- Edit/Delete ---
 
 window.openEdit = (id) => {
     const item = expenses.find(e => e.id === id);
@@ -173,56 +168,50 @@ window.openEdit = (id) => {
     document.getElementById('edit-amount').value = item.amount;
     document.getElementById('editModal').style.display = 'flex';
 };
-
 window.closeModal = () => document.getElementById('editModal').style.display = 'none';
 
 window.saveEdit = () => {
     const id = document.getElementById('edit-id').value;
-    const updated = {
+    const upd = {
         spender: document.getElementById('edit-spender').value,
         date: document.getElementById('edit-date').value,
         category: document.getElementById('edit-category').value,
         remarks: document.getElementById('edit-remarks').value,
         amount: parseFloat(document.getElementById('edit-amount').value)
     };
-    const path = currentView === 'current' ? `current_expenses/${id}` : `archives/${selectedArchiveId}/data/${id}`;
-    update(ref(db, path), updated).then(() => closeModal());
+    const p = currentView === 'current' ? `current_expenses/${id}` : `archives/${selectedArchiveId}/data/${id}`;
+    update(ref(db, p), upd).then(() => closeModal());
 };
 
 window.confirmDelete = () => {
-    if (!confirm("Delete permanently?")) return;
+    if (!confirm("Really delete?")) return;
     const id = document.getElementById('edit-id').value;
-    const path = currentView === 'current' ? `current_expenses/${id}` : `archives/${selectedArchiveId}/data/${id}`;
-    remove(ref(db, path)).then(() => closeModal());
+    const p = currentView === 'current' ? `current_expenses/${id}` : `archives/${selectedArchiveId}/data/${id}`;
+    remove(ref(db, p)).then(() => closeModal());
 };
 
 window.deleteArchive = () => {
-    if (!selectedArchiveId) return alert("Select an archive first.");
-    if (!confirm("Are you sure you want to permanently DELETE this entire archive? This cannot be undone.")) return;
-    
+    if(!confirm("Delete entire archive?")) return;
     remove(ref(db, `archives/${selectedArchiveId}`)).then(() => {
-        alert("Archive deleted!");
-        selectedArchiveId = null;
-        expenses = [];
-        renderUI();
+        selectedArchiveId = null; expenses = []; renderUI();
     });
 };
 
-// --- View ---
+// --- View Rendering ---
 
 function renderUI() {
     tbody.innerHTML = '';
     let total = 0;
-    let categoryData = {};
+    let catData = {};
     if (expenses.length === 0) {
         totalAmountEl.innerText = "₹ 0.00";
-        dateRangeEl.innerText = "No entries.";
-        updateChart({});
+        dateRangeEl.innerText = "Empty Report";
+        if(myChart) myChart.destroy();
         return;
     }
     expenses.forEach(e => {
         total += e.amount;
-        categoryData[e.category] = (categoryData[e.category] || 0) + e.amount;
+        catData[e.category] = (catData[e.category] || 0) + e.amount;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</td>
@@ -234,135 +223,194 @@ function renderUI() {
         `;
         tbody.appendChild(tr);
     });
-    totalAmountEl.innerText = `₹ ${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    totalAmountEl.innerText = `₹ ${total.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
     dateRangeEl.innerText = `${new Date(expenses[expenses.length-1].date).toLocaleDateString('en-IN')} to ${new Date(expenses[0].date).toLocaleDateString('en-IN')}`;
-    updateChart(categoryData);
+    updateChart(catData);
 }
 
 function updateChart(data) {
     const ctx = document.getElementById('categoryChart').getContext('2d');
-    const labels = Object.keys(data);
-    if (myChart) myChart.destroy();
+    const sorted = Object.entries(data).sort((a,b) => b[1]-a[1]);
+    if(myChart) myChart.destroy();
     myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: sorted.map(s=>s[0]),
             datasets: [{
-                data: Object.values(data),
-                backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#22c55e','#64748b'].slice(0, labels.length)
+                data: sorted.map(s=>s[1]),
+                backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#22c55e','#64748b']
             }]
         },
         options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 }
 
+// --- XLSX & IMPORT ---
+
 window.exportToExcel = () => {
     const raw = expenses.map(e => ({ "Date": e.date, "By": e.spender, "Category": e.category, "Remarks": e.remarks, "Amount": e.amount }));
-    raw.push({ "Date": "GRAND TOTAL", "By": "", "Category": "", "Remarks": "", "Amount": expenses.reduce((s,e)=>s+e.amount,0)});
-    const sumMap = {}; expenses.forEach(e => sumMap[e.category] = (sumMap[e.category]||0)+e.amount);
-    const sum = Object.keys(sumMap).map(k=>({"Category":k, "Total":sumMap[k]}));
-    
-    // V3.1: Sort Summary by Amount Descending
-    sum.sort((a, b) => b["Total"] - a["Total"]);
-
+    raw.push({ "Date": "GRAND TOTAL", "Amount": expenses.reduce((s,e)=>s+e.amount,0)});
+    const sMap = {}; expenses.forEach(e => sMap[e.category] = (sMap[e.category]||0)+e.amount);
+    const sum = Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(s=>({"Category":s[0], "Total":s[1]}));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "Details");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sum), "Summary");
     XLSX.writeFile(wb, "Expense_Report.xlsx");
 };
 
-// --- DATA MIGRATION V3.2 (Excel Import) ---
-window.importLegacyData = () => {
-    if (!confirm("This will add 70+ items from your Excel sheet to the CURRENT report. Continue?")) return;
-    
-    const legacyData = [
-        {"date": "2025-08-03", "category": "shopping", "remarks": "Ira dress", "amount": 550, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "Hotel", "remarks": "KFC", "amount": 524, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "Hotel", "remarks": "Swad fish", "amount": 690, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "shopping", "remarks": "Blouse stitching", "amount": 1900, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "Grocery", "remarks": "Milk", "amount": 37, "spender": "Indra"},
-        {"date": "2025-09-03", "category": "Medicines", "remarks": "Baby powder", "amount": 111, "spender": "Indra"},
-        {"date": "2025-09-03", "category": "Grocery", "remarks": "Milk", "amount": 76, "spender": "Indra"},
-        {"date": "2025-09-03", "category": "Grocery", "remarks": "Egg", "amount": 36, "spender": "Indra"},
-        {"date": "2025-09-03", "category": "Hotel", "remarks": "Chat", "amount": 30, "spender": "Indra"},
-        {"date": "2025-09-03", "category": "Grocery", "remarks": "Reliance", "amount": 268, "spender": "Indra"},
-        {"date": "2025-09-03", "category": "Grocery", "remarks": "Bhaji", "amount": 205, "spender": "Indra"},
-        {"date": "2025-10-03", "category": "Fuel", "remarks": "Petrol", "amount": 150, "spender": "Indra"},
-        {"date": "2025-10-03", "category": "Fruits", "remarks": "kharbuja", "amount": 100, "spender": "Indra"},
-        {"date": "2025-10-03", "category": "Fruits", "remarks": "Grapes", "amount": 150, "spender": "Indra"},
-        {"date": "2025-10-03", "category": "travel", "remarks": "Ashtvinayak", "amount": 4900, "spender": "Indra"},
-        {"date": "2025-11-03", "category": "Grocery", "remarks": "Milk", "amount": 114, "spender": "Indra"},
-        {"date": "2025-11-03", "category": "shopping", "remarks": "Toys", "amount": 276, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "shopping", "remarks": "Mesho ira", "amount": 880, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "Others", "remarks": "Games cricket", "amount": 500, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "Hotel", "remarks": "Misal", "amount": 100, "spender": "Indra"},
-        {"date": "2025-12-03", "category": "shopping", "remarks": "Bean bag refill", "amount": 1286, "spender": "Indra"},
-        {"date": "2025-12-03", "category": "Utility", "remarks": "Electricity Manjari", "amount": 1320, "spender": "Indra"},
-        {"date": "2025-08-03", "category": "Utility", "remarks": "Lpg", "amount": 905, "spender": "Indra"},
-        {"date": "2025-12-03", "category": "Grocery", "remarks": "Grocery", "amount": 290, "spender": "Indra"},
-        {"date": "2025-12-03", "category": "shopping", "remarks": "Bean bag", "amount": 1286, "spender": "Indra"},
-        {"date": "2025-12-03", "category": "Fuel", "remarks": "Petrol", "amount": 3688, "spender": "Indra"},
-        {"date": "2026-03-13", "category": "Fuel", "remarks": "Petrol", "amount": 100, "spender": "Indra"},
-        {"date": "2026-03-13", "category": "shopping", "remarks": "Ira's clips", "amount": 25, "spender": "Indra"},
-        {"date": "2026-03-14", "category": "travel", "remarks": "Travel", "amount": 66, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "shopping", "remarks": "Shopping", "amount": 150, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 60, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 10, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 120, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 140, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 25, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 30, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 20, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 50, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "Hotel", "remarks": "Hotel", "amount": 1186, "spender": "Indra"},
-        {"date": "2026-03-15", "category": "travel", "remarks": "Travel", "amount": 250, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 30, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 20, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 60, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Utility", "remarks": "Maintenance", "amount": 800, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Fruits", "remarks": "Fruits", "amount": 100, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Grocery", "remarks": "Egg", "amount": 39, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Others", "remarks": "Other", "amount": 375, "spender": "Indra"},
-        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 220, "spender": "Indra"},
-        {"date": "2026-03-18", "category": "snacks", "remarks": "Snacks", "amount": 60, "spender": "Indra"},
-        {"date": "2026-03-17", "category": "Utility", "remarks": "Maintenance", "amount": 50, "spender": "Indra"},
-        {"date": "2026-03-18", "category": "Others", "remarks": "Misc", "amount": 200, "spender": "Indra"},
-        {"date": "2026-03-19", "category": "Grocery", "remarks": "Grocery", "amount": 459, "spender": "Indra"},
-        {"date": "2026-03-19", "category": "shopping", "remarks": "Ira hat", "amount": 50, "spender": "Indra"},
-        {"date": "2026-03-19", "category": "Hotel", "remarks": "Biryani", "amount": 300, "spender": "Indra"},
-        {"date": "2026-03-19", "category": "Grocery", "remarks": "Reliance", "amount": 88, "spender": "Indra"},
-        {"date": "2026-03-19", "category": "Others", "remarks": "Festival flowers", "amount": 90, "spender": "Indra"},
-        {"date": "2026-03-19", "category": "shopping", "remarks": "Ira's toy", "amount": 700, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 404, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "hospital", "remarks": "Ira dentist", "amount": 490, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "Hotel", "remarks": "Snacks", "amount": 260, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 150, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 285, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 36, "spender": "Indra"},
-        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 20, "spender": "Indra"},
-        {"date": "2026-03-22", "category": "Fuel", "remarks": "Petrol", "amount": 366, "spender": "Indra"},
-        {"date": "2026-03-22", "category": "Grocery", "remarks": "Grocery", "amount": 80, "spender": "Indra"},
-        {"date": "2026-03-22", "category": "Grocery", "remarks": "Grocery", "amount": 320, "spender": "Indra"},
-        {"date": "2026-03-22", "category": "Grocery", "remarks": "Grocery", "amount": 1350, "spender": "Indra"},
-        {"date": "2026-03-23", "category": "Hotel", "remarks": "Hotel", "amount": 10, "spender": "Indra"},
-        {"date": "2026-03-23", "category": "Grocery", "remarks": "Grocery", "amount": 247, "spender": "Indra"},
-        {"date": "2026-03-23", "category": "snacks", "remarks": "Snacks", "amount": 40, "spender": "Indra"},
-        {"date": "2026-03-24", "category": "snacks", "remarks": "Snacks", "amount": 40, "spender": "Indra"},
-        {"date": "2026-03-24", "category": "Grocery", "remarks": "Grocery", "amount": 32, "spender": "Indra"},
-        {"date": "2026-03-24", "category": "Grocery", "remarks": "Grocery", "amount": 111, "spender": "Indra"},
-        {"date": "2026-03-24", "category": "Grocery", "remarks": "Grocery", "amount": 546, "spender": "Indra"},
-        {"date": "2026-03-24", "category": "Medicines", "remarks": "Medicines", "amount": 120, "spender": "Indra"}
-    ];
+// V3.3 Native File Upload
+window.triggerFileUpload = () => document.getElementById('bulk-file-input').click();
 
-    const currentRef = ref(db, 'current_expenses');
-    
-    // Batch upload to Firebase
-    legacyData.forEach(item => {
-        push(currentRef, {
-            ...item,
-            addedBy: "System Migration"
+window.handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        if (rows.length === 0) return alert("File is empty!");
+
+        if (!confirm(`Found ${rows.length} items. Add them to the CURRENT report?`)) return;
+
+        const currentRef = ref(db, 'current_expenses');
+        rows.forEach(row => {
+            // Flexible column mapping
+            const cleanRow = {
+                date: parseExcelDate(row.Date || row.date),
+                category: normalizeCategory(row.Category || row.category || "Others"),
+                remarks: row.Description || row.Remarks || row.remarks || "Bulk upload",
+                amount: parseFloat(row.Amount || row.amount || 0),
+                spender: "Indra", // Default for bulk upload
+                addedBy: "Excel Upload"
+            };
+            if (!isNaN(cleanRow.amount)) push(currentRef, cleanRow);
         });
-    });
+        alert("Upload Complete! Syncing to database...");
+        event.target.value = ''; // Reset input
+    };
+    reader.readAsArrayBuffer(file);
+};
 
-    alert("✅ Data Migrated! Your dashboard will refresh now.");
+function parseExcelDate(val) {
+    if (val instanceof Date) return val.toISOString().split('T')[0];
+    if (typeof val === 'string') {
+        // Try D/M or D/M/Y
+        const parts = val.split(/[\/-]/);
+        if (parts.length >= 2) {
+            const d = parts[0].padStart(2, '0');
+            const m = parts[1].padStart(2, '0');
+            const y = parts[2] ? (parts[2].length === 2 ? '20'+parts[2] : parts[2]) : '2026';
+            return `${y}-${m}-${d}`;
+        }
+    }
+    return new Date().toISOString().split('T')[0]; // Fallback
+}
+
+function normalizeCategory(cat) {
+    const c = cat.trim();
+    if (c.toLowerCase().includes("grocery")) return "Grocery";
+    if (c.toLowerCase().includes("hotel")) return "Hotel";
+    if (c.toLowerCase().includes("shopping")) return "shopping";
+    if (c.toLowerCase().includes("fuel") || c.toLowerCase().includes("petrol")) return "Fuel";
+    if (c.toLowerCase().includes("fruit")) return "Fruits";
+    if (c.toLowerCase().includes("med")) return "Medicines";
+    if (c.toLowerCase().includes("trave")) return "travel";
+    if (c.toLowerCase().includes("maint")) return "Maintenance";
+    return "Others";
+}
+
+// V3.3 One-time Data Fix for March
+window.wipeAndSeedMarch = () => {
+    if (!confirm("⚠️ This will WIPE the current report and fill it with the 76 March entries you provided. Correct?")) return;
+    
+    set(ref(db, 'current_expenses'), null).then(() => {
+        const seedData = [
+            {"date":"2026-03-08","category":"shopping","remarks":"Ira dress","amount":550},
+            {"date":"2026-03-08","category":"Hotel","remarks":"KFC","amount":524},
+            {"date":"2026-03-08","category":"Hotel","remarks":"Swad fish","amount":690},
+            {"date":"2026-03-08","category":"shopping","remarks":"Blouse stitching","amount":1900},
+            {"date":"2026-03-08","category":"Grocery","remarks":"Milk","amount":37},
+            {"date":"2026-03-09","category":"Medicines","remarks":"Baby powder","amount":111},
+            {"date":"2026-03-09","category":"Grocery","remarks":"Milk","amount":76},
+            {"date":"2026-03-09","category":"Grocery","remarks":"Egg","amount":36},
+            {"date":"2026-03-09","category":"Hotel","remarks":"Chat","amount":30},
+            {"date":"2026-03-09","category":"Grocery","remarks":"Reliance","amount":268},
+            {"date":"2026-03-09","category":"Grocery","remarks":"Bhaji","amount":205},
+            {"date":"2026-03-10","category":"Fuel","remarks":"Petrol","amount":150},
+            {"date":"2026-03-10","category":"Fruits","remarks":"kharbuj","amount":100},
+            {"date":"2026-03-10","category":"Fruits","remarks":"Grapes","amount":150},
+            {"date":"2026-03-10","category":"travel","remarks":"Ashtvinayak","amount":4900},
+            {"date":"2026-03-11","category":"Grocery","remarks":"Milk","amount":114},
+            {"date":"2026-03-11","category":"shopping","remarks":"Toys","amount":276},
+            {"date":"2026-03-08","category":"shopping","remarks":"Mesho ira","amount":880},
+            {"date":"2026-03-08","category":"Others","remarks":"Cricket","amount":500},
+            {"date":"2026-03-08","category":"Hotel","remarks":"Misal","amount":100},
+            {"date":"2026-03-12","category":"shopping","remarks":"Bean bag refill","amount":1286},
+            {"date":"2026-03-12","category":"Utility","remarks":"Electricity Manjari","amount":1320},
+            {"date":"2026-03-08","category":"Utility","remarks":"Lpg","amount":905},
+            {"date":"2026-03-12","category":"Grocery","remarks":"","amount":290},
+            {"date":"2026-03-12","category":"shopping","remarks":"Bean bag","amount":1286},
+            {"date":"2026-03-12","category":"Fuel","remarks":"Petrol","amount":3686},
+            {"date":"2026-03-13","category":"Fuel","remarks":"Petrol","amount":100},
+            {"date":"2026-03-13","category":"shopping","remarks":"Ira's clips","amount":25},
+            {"date":"2026-03-14","category":"travel","remarks":"","amount":66},
+            {"date":"2026-03-15","category":"shopping","remarks":"","amount":150},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":60},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":10},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":120},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":140},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":25},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":30},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":20},
+            {"date":"2026-03-15","category":"Grocery","remarks":"","amount":50},
+            {"date":"2026-03-15","category":"Hotel","remarks":"","amount":1186},
+            {"date":"2026-03-15","category":"travel","remarks":"","amount":250},
+            {"date":"2026-03-16","category":"Grocery","remarks":"","amount":30},
+            {"date":"2026-03-16","category":"Grocery","remarks":"","amount":20},
+            {"date":"2026-03-16","category":"Grocery","remarks":"","amount":60},
+            {"date":"2026-03-16","category":"Maintenance","remarks":"Bike maintenance","amount":800},
+            {"date":"2026-03-16","category":"Fruits","remarks":"","amount":100},
+            {"date":"2026-03-16","category":"Grocery","remarks":"Egg","amount":39},
+            {"date":"2026-03-16","category":"Others","remarks":"","amount":375},
+            {"date":"2026-03-16","category":"Grocery","remarks":"","amount":220},
+            {"date":"2026-03-18","category":"snacks","remarks":"","amount":60},
+            {"date":"2026-03-17","category":"Maintenance","remarks":"","amount":50},
+            {"date":"2026-03-18","category":"Others","remarks":"Misc","amount":200},
+            {"date":"2026-03-19","category":"Grocery","remarks":"","amount":459},
+            {"date":"2026-03-19","category":"shopping","remarks":"Ira hat","amount":50},
+            {"date":"2026-03-19","category":"Hotel","remarks":"Biryani","amount":300},
+            {"date":"2026-03-19","category":"Grocery","remarks":"Reliance","amount":88},
+            {"date":"2026-03-19","category":"Others","remarks":"Flowers","amount":90},
+            {"date":"2026-03-19","category":"shopping","remarks":"Ira's toy","amount":700},
+            {"date":"2026-03-20","category":"Grocery","remarks":"","amount":404},
+            {"date":"2026-03-20","category":"hospital","remarks":"Ira dentist","amount":490},
+            {"date":"2026-03-20","category":"Hotel","remarks":"Snacks","amount":260},
+            {"date":"2026-03-20","category":"Grocery","remarks":"","amount":150},
+            {"date":"2026-03-20","category":"Grocery","remarks":"","amount":285},
+            {"date":"2026-03-20","category":"Grocery","remarks":"","amount":36},
+            {"date":"2026-03-20","category":"Grocery","remarks":"","amount":20},
+            {"date":"2026-03-22","category":"Fuel","remarks":"","amount":366},
+            {"date":"2026-03-22","category":"Grocery","remarks":"","amount":80},
+            {"date":"2026-03-22","category":"Grocery","remarks":"","amount":320},
+            {"date":"2026-03-22","category":"Grocery","remarks":"","amount":1350},
+            {"date":"2026-03-23","category":"Hotel","remarks":"","amount":10},
+            {"date":"2026-03-23","category":"Grocery","remarks":"","amount":247},
+            {"date":"2026-03-23","category":"snacks","remarks":"","amount":40},
+            {"date":"2026-03-24","category":"snacks","remarks":"","amount":40},
+            {"date":"2026-03-24","category":"Grocery","remarks":"","amount":32},
+            {"date":"2026-03-24","category":"Grocery","remarks":"","amount":111},
+            {"date":"2026-03-24","category":"Grocery","remarks":"","amount":546},
+            {"date":"2026-03-24","category":"Medicines","remarks":"","amount":120}
+        ];
+        const currentRef = ref(db, 'current_expenses');
+        seedData.forEach(item => {
+            push(currentRef, { ...item, spender: "Indra", addedBy: "Admin Fix" });
+        });
+        document.getElementById('data-fix-btn').style.display = 'none';
+        alert("Done! Your March history is restored.");
+    });
 };

@@ -10,7 +10,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="v3-layout">
-    <!-- Authenticated Dashboard (hidden until login) -->
     <div class="dashboard" id="dashboard-ui" style="display: none;">
         <aside class="sidebar">
             <div class="logo">
@@ -35,17 +34,18 @@
                 <div class="form-group">
                     <label>Category</label>
                     <select id="exp-category" required>
-                    <option value="Grocery">Grocery</option>
-                    <option value="Medicines">Medicines</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="snacks">snacks</option>
-                    <option value="travel">travel</option>
-                    <option value="shopping">shopping</option>
-                    <option value="Utility">Utility</option>
-                    <option value="Fruits">Fruits</option>
-                    <option value="hospital">hospital</option>
-                    <option value="Fuel">Fuel</option>
-                    <option value="Others">Others</option>
+                        <option value="Grocery" selected>Grocery</option>
+                        <option value="Medicines">Medicines</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="snacks">snacks</option>
+                        <option value="travel">travel</option>
+                        <option value="shopping">shopping</option>
+                        <option value="Utility">Utility</option>
+                        <option value="Fruits">Fruits</option>
+                        <option value="hospital">hospital</option>
+                        <option value="Fuel">Fuel</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Others">Others</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -57,7 +57,13 @@
                     <input type="number" id="exp-amount" min="1" step="any" placeholder="0.00" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Add Expense</button>
-                <button type="button" class="btn btn-outline" style="margin-top: 20px; font-size: 0.75rem;" onclick="importLegacyData()">📥 Bulk Import Excel Data</button>
+                
+                <div class="import-section" style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Bulk Upload History</p>
+                    <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.8rem;" onclick="triggerFileUpload()">📤 Upload Excel (.xlsx)</button>
+                    <!-- Hidden file input -->
+                    <input type="file" id="bulk-file-input" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleFileUpload(event)">
+                </div>
             </form>
         </aside>
 
@@ -80,11 +86,13 @@
                 <div class="header-actions">
                     <button class="btn btn-outline" onclick="exportToExcel()">📥 Export XLSX</button>
                     <button class="btn btn-success" onclick="archiveCurrent()">📁 Start Fresh</button>
+                    <!-- One-time data fix button (hidden after use) -->
+                    <button class="btn btn-danger-outline" style="font-size: 0.7rem; padding: 4px 8px;" id="data-fix-btn" onclick="wipeAndSeedMarch()">⚠️ Wipe & Fix March Data</button>
                 </div>
             </header>
 
             <header class="report-header" id="archive-header" style="display: none;">
-                <div class="header-titles">
+                <div classRef="header-titles">
                     <h1>Historical Archives</h1>
                     <select id="archive-selector" onchange="loadSpecificArchive(this.value)">
                         <option value="">Select an Archive...</option>
@@ -124,34 +132,28 @@
         </main>
     </div>
 
-    <!-- Login Screen Shell -->
+    <!-- Login Screen -->
     <div id="login-ui" class="login-screen">
         <div class="login-card">
             <h1>Family Expense 🔐</h1>
             <p>Please sign in to access your family reports.</p>
             <form id="login-form">
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="login-email" required placeholder="family@expenses.com">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="login-password" required placeholder="••••••••">
-                </div>
+                <div class="form-group"><label>Email</label><input type="email" id="login-email" required></div>
+                <div class="form-group"><label>Password</label><input type="password" id="login-password" required></div>
                 <button type="submit" class="btn btn-primary">Sign In</button>
             </form>
             <div id="login-error" class="error-msg"></div>
-            <div class="login-footer">Privacy Protected by Google Firebase</div>
         </div>
     </div>
 
+    <!-- Edit Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <h3>Edit Entry</h3>
             <input type="hidden" id="edit-id">
             <div class="form-group"><label>Date</label><input type="date" id="edit-date"></div>
-            <div class="form-group"><label>Spender</label>                <select id="edit-spender"><option value="Indra">Indra</option><option value="Ragini">Ragini</option><option value="Other">Other Family</option></select></div>
-            <div class="form-group"><label>Category</label><select id="edit-category"><option value="Grocery">Grocery</option><option value="Medicines">Medicines</option><option value="Hotel">Hotel</option><option value="snacks">snacks</option><option value="travel">travel</option><option value="shopping">shopping</option><option value="Utility">Utility</option><option value="Fruits">Fruits</option><option value="hospital">hospital</option><option value="Others">Others</option></select></div>
+            <div class="form-group"><label>Spender</label><select id="edit-spender"><option value="Indra">Indra</option><option value="Ragini">Ragini</option><option value="Other">Other Family</option></select></div>
+            <div class="form-group"><label>Category</label><select id="edit-category"><option value="Grocery">Grocery</option><option value="Medicines">Medicines</option><option value="Hotel">Hotel</option><option value="snacks">snacks</option><option value="travel">travel</option><option value="shopping">shopping</option><option value="Utility">Utility</option><option value="Fruits">Fruits</option><option value="hospital">hospital</option><option value="Fuel">Fuel</option><option value="Maintenance">Maintenance</option><option value="Others">Others</option></select></div>
             <div class="form-group"><label>Remarks</label><input type="text" id="edit-remarks"></div>
             <div class="form-group"><label>Amount</label><input type="number" id="edit-amount"></div>
             <div class="modal-footer">
