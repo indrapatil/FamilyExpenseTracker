@@ -270,3 +270,99 @@ window.exportToExcel = () => {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sum), "Summary");
     XLSX.writeFile(wb, "Expense_Report.xlsx");
 };
+
+// --- DATA MIGRATION V3.2 (Excel Import) ---
+window.importLegacyData = () => {
+    if (!confirm("This will add 70+ items from your Excel sheet to the CURRENT report. Continue?")) return;
+    
+    const legacyData = [
+        {"date": "2025-08-03", "category": "shopping", "remarks": "Ira dress", "amount": 550, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "Hotel", "remarks": "KFC", "amount": 524, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "Hotel", "remarks": "Swad fish", "amount": 690, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "shopping", "remarks": "Blouse stitching", "amount": 1900, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "Grocery", "remarks": "Milk", "amount": 37, "spender": "Indra"},
+        {"date": "2025-09-03", "category": "Medicines", "remarks": "Baby powder", "amount": 111, "spender": "Indra"},
+        {"date": "2025-09-03", "category": "Grocery", "remarks": "Milk", "amount": 76, "spender": "Indra"},
+        {"date": "2025-09-03", "category": "Grocery", "remarks": "Egg", "amount": 36, "spender": "Indra"},
+        {"date": "2025-09-03", "category": "Hotel", "remarks": "Chat", "amount": 30, "spender": "Indra"},
+        {"date": "2025-09-03", "category": "Grocery", "remarks": "Reliance", "amount": 268, "spender": "Indra"},
+        {"date": "2025-09-03", "category": "Grocery", "remarks": "Bhaji", "amount": 205, "spender": "Indra"},
+        {"date": "2025-10-03", "category": "Fuel", "remarks": "Petrol", "amount": 150, "spender": "Indra"},
+        {"date": "2025-10-03", "category": "Fruits", "remarks": "kharbuja", "amount": 100, "spender": "Indra"},
+        {"date": "2025-10-03", "category": "Fruits", "remarks": "Grapes", "amount": 150, "spender": "Indra"},
+        {"date": "2025-10-03", "category": "travel", "remarks": "Ashtvinayak", "amount": 4900, "spender": "Indra"},
+        {"date": "2025-11-03", "category": "Grocery", "remarks": "Milk", "amount": 114, "spender": "Indra"},
+        {"date": "2025-11-03", "category": "shopping", "remarks": "Toys", "amount": 276, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "shopping", "remarks": "Mesho ira", "amount": 880, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "Others", "remarks": "Games cricket", "amount": 500, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "Hotel", "remarks": "Misal", "amount": 100, "spender": "Indra"},
+        {"date": "2025-12-03", "category": "shopping", "remarks": "Bean bag refill", "amount": 1286, "spender": "Indra"},
+        {"date": "2025-12-03", "category": "Utility", "remarks": "Electricity Manjari", "amount": 1320, "spender": "Indra"},
+        {"date": "2025-08-03", "category": "Utility", "remarks": "Lpg", "amount": 905, "spender": "Indra"},
+        {"date": "2025-12-03", "category": "Grocery", "remarks": "Grocery", "amount": 290, "spender": "Indra"},
+        {"date": "2025-12-03", "category": "shopping", "remarks": "Bean bag", "amount": 1286, "spender": "Indra"},
+        {"date": "2025-12-03", "category": "Fuel", "remarks": "Petrol", "amount": 3688, "spender": "Indra"},
+        {"date": "2026-03-13", "category": "Fuel", "remarks": "Petrol", "amount": 100, "spender": "Indra"},
+        {"date": "2026-03-13", "category": "shopping", "remarks": "Ira's clips", "amount": 25, "spender": "Indra"},
+        {"date": "2026-03-14", "category": "travel", "remarks": "Travel", "amount": 66, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "shopping", "remarks": "Shopping", "amount": 150, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 60, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 10, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 120, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 140, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 25, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 30, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 20, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Grocery", "remarks": "Grocery", "amount": 50, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "Hotel", "remarks": "Hotel", "amount": 1186, "spender": "Indra"},
+        {"date": "2026-03-15", "category": "travel", "remarks": "Travel", "amount": 250, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 30, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 20, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 60, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Utility", "remarks": "Maintenance", "amount": 800, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Fruits", "remarks": "Fruits", "amount": 100, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Grocery", "remarks": "Egg", "amount": 39, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Others", "remarks": "Other", "amount": 375, "spender": "Indra"},
+        {"date": "2026-03-16", "category": "Grocery", "remarks": "Grocery", "amount": 220, "spender": "Indra"},
+        {"date": "2026-03-18", "category": "snacks", "remarks": "Snacks", "amount": 60, "spender": "Indra"},
+        {"date": "2026-03-17", "category": "Utility", "remarks": "Maintenance", "amount": 50, "spender": "Indra"},
+        {"date": "2026-03-18", "category": "Others", "remarks": "Misc", "amount": 200, "spender": "Indra"},
+        {"date": "2026-03-19", "category": "Grocery", "remarks": "Grocery", "amount": 459, "spender": "Indra"},
+        {"date": "2026-03-19", "category": "shopping", "remarks": "Ira hat", "amount": 50, "spender": "Indra"},
+        {"date": "2026-03-19", "category": "Hotel", "remarks": "Biryani", "amount": 300, "spender": "Indra"},
+        {"date": "2026-03-19", "category": "Grocery", "remarks": "Reliance", "amount": 88, "spender": "Indra"},
+        {"date": "2026-03-19", "category": "Others", "remarks": "Festival flowers", "amount": 90, "spender": "Indra"},
+        {"date": "2026-03-19", "category": "shopping", "remarks": "Ira's toy", "amount": 700, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 404, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "hospital", "remarks": "Ira dentist", "amount": 490, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "Hotel", "remarks": "Snacks", "amount": 260, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 150, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 285, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 36, "spender": "Indra"},
+        {"date": "2026-03-20", "category": "Grocery", "remarks": "Grocery", "amount": 20, "spender": "Indra"},
+        {"date": "2026-03-22", "category": "Fuel", "remarks": "Petrol", "amount": 366, "spender": "Indra"},
+        {"date": "2026-03-22", "category": "Grocery", "remarks": "Grocery", "amount": 80, "spender": "Indra"},
+        {"date": "2026-03-22", "category": "Grocery", "remarks": "Grocery", "amount": 320, "spender": "Indra"},
+        {"date": "2026-03-22", "category": "Grocery", "remarks": "Grocery", "amount": 1350, "spender": "Indra"},
+        {"date": "2026-03-23", "category": "Hotel", "remarks": "Hotel", "amount": 10, "spender": "Indra"},
+        {"date": "2026-03-23", "category": "Grocery", "remarks": "Grocery", "amount": 247, "spender": "Indra"},
+        {"date": "2026-03-23", "category": "snacks", "remarks": "Snacks", "amount": 40, "spender": "Indra"},
+        {"date": "2026-03-24", "category": "snacks", "remarks": "Snacks", "amount": 40, "spender": "Indra"},
+        {"date": "2026-03-24", "category": "Grocery", "remarks": "Grocery", "amount": 32, "spender": "Indra"},
+        {"date": "2026-03-24", "category": "Grocery", "remarks": "Grocery", "amount": 111, "spender": "Indra"},
+        {"date": "2026-03-24", "category": "Grocery", "remarks": "Grocery", "amount": 546, "spender": "Indra"},
+        {"date": "2026-03-24", "category": "Medicines", "remarks": "Medicines", "amount": 120, "spender": "Indra"}
+    ];
+
+    const currentRef = ref(db, 'current_expenses');
+    
+    // Batch upload to Firebase
+    legacyData.forEach(item => {
+        push(currentRef, {
+            ...item,
+            addedBy: "System Migration"
+        });
+    });
+
+    alert("✅ Data Migrated! Your dashboard will refresh now.");
+};

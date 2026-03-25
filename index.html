@@ -35,16 +35,17 @@
                 <div class="form-group">
                     <label>Category</label>
                     <select id="exp-category" required>
-                        <option value="Grocery" selected>Grocery</option>
-                        <option value="Medicines">Medicines</option>
-                        <option value="Hotel">Hotel</option>
-                        <option value="snacks">snacks</option>
-                        <option value="travel">travel</option>
-                        <option value="shopping">shopping</option>
-                        <option value="Utility">Utility</option>
-                        <option value="Fruits">Fruits</option>
-                        <option value="hospital">hospital</option>
-                        <option value="Others">Others</option>
+                    <option value="Grocery">Grocery</option>
+                    <option value="Medicines">Medicines</option>
+                    <option value="Hotel">Hotel</option>
+                    <option value="snacks">snacks</option>
+                    <option value="travel">travel</option>
+                    <option value="shopping">shopping</option>
+                    <option value="Utility">Utility</option>
+                    <option value="Fruits">Fruits</option>
+                    <option value="hospital">hospital</option>
+                    <option value="Fuel">Fuel</option>
+                    <option value="Others">Others</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -56,6 +57,7 @@
                     <input type="number" id="exp-amount" min="1" step="any" placeholder="0.00" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Add Expense</button>
+                <button type="button" class="btn btn-outline" style="margin-top: 20px; font-size: 0.75rem;" onclick="importLegacyData()">📥 Bulk Import Excel Data</button>
             </form>
         </aside>
 
