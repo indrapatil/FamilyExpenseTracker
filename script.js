@@ -312,14 +312,55 @@ function updateChart(data) {
 // --- XLSX & IMPORT ---
 
 window.exportToExcel = () => {
-    const raw = expenses.map(e => ({ "Date": e.date, "By": e.spender, "Category": e.category, "Remarks": e.remarks, "Amount": e.amount }));
-    raw.push({ "Date": "GRAND TOTAL", "Amount": expenses.reduce((s,e)=>s+e.amount,0)});
-    const sMap = {}; expenses.forEach(e => sMap[e.category] = (sMap[e.category]||0)+e.amount);
-    const sum = Object.entries(sMap).sort((a,b)=>b[1]-a[1]).map(s=>({"Category":s[0], "Total":s[1]}));
-    const wb = XLSX.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "Details");
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sum), "Summary");
-    XLSX.writeFile(wb, "Expense_Report.xlsx");
+    // 1. Get filtered data (matching renderUI logic)
+    const isFiltered = activeFilters.category !== 'ALL' || activeFilters.start || activeFilters.end;
+    const toExport = expenses.filter(e => {
+        const matchesCat = activeFilters.category === 'ALL' || e.category === activeFilters.category;
+        const matchesStart = !activeFilters.start || e.date >= activeFilters.start;
+        const matchesEnd = !activeFilters.end || e.date <= activeFilters.end;
+        return matchesCat && matchesStart && matchesEnd;
+    });
+
+    if (toExport.length === 0) return alert("No data matches current filters to export!");
+
+    // 2. Prepare Details Sheet
+    const raw = toExport.map(e => ({ 
+        "Date": e.date, 
+        "By": e.spender, 
+        "Category": e.category, 
+        "Remarks": e.remarks, 
+        "Amount": e.amount 
+    }));
+    
+    const totalAmount = toExport.reduce((s, e) => s + e.amount, 0);
+    raw.push({ 
+        "Date": "GRAND TOTAL", 
+        "By": "", 
+        "Category": "", 
+        "Remarks": "", 
+        "Amount": totalAmount 
+    });
+
+    // 3. Prepare Summary Sheet
+    const sMap = {}; 
+    toExport.forEach(e => sMap[e.category] = (sMap[e.category] || 0) + e.amount);
+    const sum = Object.entries(sMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(s => ({ "Category": s[0], "Total Amount": s[1] }));
+
+    // 4. Generate Workbook
+    const wb = XLSX.utils.book_new();
+    const detailSheet = XLSX.utils.json_to_sheet(raw);
+    const summarySheet = XLSX.utils.json_to_sheet(sum);
+    
+    XLSX.utils.book_append_sheet(wb, detailSheet, "Details");
+    XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
+
+    // 5. Download with dynamic name
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = isFiltered ? `Expense_Report_Filtered_${dateStr}.xlsx` : `Expense_Report_Full_${dateStr}.xlsx`;
+    
+    XLSX.writeFile(wb, filename);
 };
 
 // V3.3 Native File Upload
