@@ -10,7 +10,13 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-body { background-color: var(--bg-color); color: var(--text-main); }
+body { 
+    background-color: var(--bg-color); 
+    color: var(--text-main);
+    background-image: linear-gradient(rgba(241, 245, 249, 0.95), rgba(241, 245, 249, 0.95)), url('bg.png');
+    background-attachment: fixed;
+    background-size: cover;
+}
 
 /* Login Screen */
 .login-screen {
