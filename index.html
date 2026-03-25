@@ -24,7 +24,7 @@
                     <label>Who Spent?</label>
                     <select id="exp-spender" required>
                         <option value="Indra">Indra</option>
-                        <option value="Wife">Wife</option>
+                        <option value="Ragini">Ragini</option>
                         <option value="Other">Other Family</option>
                     </select>
                 </div>
@@ -90,6 +90,7 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-outline" onclick="exportToExcel()">📥 Export This Archive</button>
+                    <button class="btn btn-danger-outline" onclick="deleteArchive()">🗑️ Delete This Archive</button>
                     <button class="btn btn-outline" onclick="switchView('current')">⬅ Back</button>
                 </div>
             </header>
@@ -147,7 +148,7 @@
             <h3>Edit Entry</h3>
             <input type="hidden" id="edit-id">
             <div class="form-group"><label>Date</label><input type="date" id="edit-date"></div>
-            <div class="form-group"><label>Spender</label><select id="edit-spender"><option value="Indra">Indra</option><option value="Wife">Wife</option><option value="Other">Other Family</option></select></div>
+            <div class="form-group"><label>Spender</label>                <select id="edit-spender"><option value="Indra">Indra</option><option value="Ragini">Ragini</option><option value="Other">Other Family</option></select></div>
             <div class="form-group"><label>Category</label><select id="edit-category"><option value="Grocery">Grocery</option><option value="Medicines">Medicines</option><option value="Hotel">Hotel</option><option value="snacks">snacks</option><option value="travel">travel</option><option value="shopping">shopping</option><option value="Utility">Utility</option><option value="Fruits">Fruits</option><option value="hospital">hospital</option><option value="Others">Others</option></select></div>
             <div class="form-group"><label>Remarks</label><input type="text" id="edit-remarks"></div>
             <div class="form-group"><label>Amount</label><input type="number" id="edit-amount"></div>

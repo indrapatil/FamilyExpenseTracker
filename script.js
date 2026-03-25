@@ -196,6 +196,18 @@ window.confirmDelete = () => {
     remove(ref(db, path)).then(() => closeModal());
 };
 
+window.deleteArchive = () => {
+    if (!selectedArchiveId) return alert("Select an archive first.");
+    if (!confirm("Are you sure you want to permanently DELETE this entire archive? This cannot be undone.")) return;
+    
+    remove(ref(db, `archives/${selectedArchiveId}`)).then(() => {
+        alert("Archive deleted!");
+        selectedArchiveId = null;
+        expenses = [];
+        renderUI();
+    });
+};
+
 // --- View ---
 
 function renderUI() {
@@ -249,6 +261,10 @@ window.exportToExcel = () => {
     raw.push({ "Date": "GRAND TOTAL", "By": "", "Category": "", "Remarks": "", "Amount": expenses.reduce((s,e)=>s+e.amount,0)});
     const sumMap = {}; expenses.forEach(e => sumMap[e.category] = (sumMap[e.category]||0)+e.amount);
     const sum = Object.keys(sumMap).map(k=>({"Category":k, "Total":sumMap[k]}));
+    
+    // V3.1: Sort Summary by Amount Descending
+    sum.sort((a, b) => b["Total"] - a["Total"]);
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(raw), "Details");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sum), "Summary");
