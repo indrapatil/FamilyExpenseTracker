@@ -373,9 +373,3 @@ function normalizeCategory(cat) {
     if (c.includes("maint")) return "Maintenance";
     return "Others";
 }
-
-        alert("Upload Complete!");
-        event.target.value = '';
-    };
-    reader.readAsArrayBuffer(file);
-};
