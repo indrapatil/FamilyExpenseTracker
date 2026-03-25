@@ -270,13 +270,23 @@ function updateChart(data) {
     
     if(myChart) myChart.destroy();
     
+    const colors = [
+        '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+        '#ec4899', '#06b6d4', '#f97316', '#22c55e', '#64748b'
+    ];
+    
     myChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: sorted.map(s => s[0]),
             datasets: [{
                 data: sorted.map(s => s[1]),
-                backgroundColor: sorted.map(s => s[0] === activeFilters.category ? '#4f46e5' : '#cbd5e1'),
+                backgroundColor: sorted.map((s, index) => {
+                    if (activeFilters.category !== 'ALL' && s[0] !== activeFilters.category) {
+                        return '#cbd5e1'; // Fade inactive
+                    }
+                    return colors[index % colors.length];
+                }),
                 borderRadius: 4
             }]
         },
