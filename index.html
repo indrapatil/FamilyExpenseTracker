@@ -3,40 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family Expense Cloud Tracker</title>
+    <title>Family Cloud Expenses 🔐</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS for Excel Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body class="v2-layout">
-    <div class="dashboard">
+<body class="v3-layout">
+    <!-- Authenticated Dashboard (hidden until login) -->
+    <div class="dashboard" id="dashboard-ui" style="display: none;">
         <aside class="sidebar">
             <div class="logo">
-                <h2>💳 FamilyCloud</h2>
+                <h2>💳 CloudFamily</h2>
+                <button class="logout-link" id="logout-btn">Sign Out</button>
             </div>
             
             <form id="expense-form" class="form-container">
                 <h3>Add New Expense</h3>
-                
                 <div class="form-group">
-                    <label for="exp-spender">Who Spent?</label>
+                    <label>Who Spent?</label>
                     <select id="exp-spender" required>
                         <option value="Indra">Indra</option>
                         <option value="Wife">Wife</option>
                         <option value="Other">Other Family</option>
                     </select>
                 </div>
-
                 <div class="form-group">
-                    <label for="exp-date">Date</label>
+                    <label>Date</label>
                     <input type="date" id="exp-date" required>
                 </div>
-
                 <div class="form-group">
-                    <label for="exp-category">Category</label>
+                    <label>Category</label>
                     <select id="exp-category" required>
                         <option value="Grocery" selected>Grocery</option>
                         <option value="Medicines">Medicines</option>
@@ -50,18 +47,15 @@
                         <option value="Others">Others</option>
                     </select>
                 </div>
-
                 <div class="form-group">
-                    <label for="exp-remarks">Remarks (Optional)</label>
+                    <label>Remarks (Optional)</label>
                     <input type="text" id="exp-remarks" placeholder="More details..." autocomplete="off">
                 </div>
-
                 <div class="form-group">
-                    <label for="exp-amount">Amount (₹)</label>
+                    <label>Amount (₹)</label>
                     <input type="number" id="exp-amount" min="1" step="any" placeholder="0.00" required>
                 </div>
-
-                <button type="submit" class="btn btn-primary" id="submit-btn">Add Expense</button>
+                <button type="submit" class="btn btn-primary">Add Expense</button>
             </form>
         </aside>
 
@@ -71,23 +65,22 @@
                     <button class="nav-btn active" id="view-current-btn" onclick="switchView('current')">Active Report</button>
                     <button class="nav-btn" id="view-archives-btn" onclick="switchView('archives')">Archives</button>
                 </div>
-                <div class="sync-status" id="sync-status">
-                    <span class="sync-dot"></span> <span id="sync-text">Cloud Synced</span>
+                <div class="user-info">
+                   <span id="logged-user-email"></span>
                 </div>
             </nav>
 
             <header class="report-header" id="current-report-header">
                 <div class="header-titles">
-                    <h1>Expense Report</h1>
-                    <p class="date-range" id="report-date-range">Calculating timeline...</p>
+                    <h1>Active Report</h1>
+                    <p class="date-range" id="report-date-range">Syncing...</p>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-outline" onclick="exportToExcel()">📥 Export XLSX</button>
-                    <button class="btn btn-success" onclick="archiveCurrent()">📁 Start Fresh (Archive Current)</button>
+                    <button class="btn btn-success" onclick="archiveCurrent()">📁 Start Fresh</button>
                 </div>
             </header>
 
-            <!-- Dynamic Archive Selector (Hidden by default) -->
             <header class="report-header" id="archive-header" style="display: none;">
                 <div class="header-titles">
                     <h1>Historical Archives</h1>
@@ -97,20 +90,16 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-outline" onclick="exportToExcel()">📥 Export This Archive</button>
-                    <button class="btn btn-outline" onclick="switchView('current')">⬅ Back to Active</button>
+                    <button class="btn btn-outline" onclick="switchView('current')">⬅ Back</button>
                 </div>
             </header>
 
             <div class="stats-row">
-                <div class="stat-main">
-                    <div class="stat-card">
-                        <span class="stat-label">Total Spent</span>
-                        <div class="stat-value" id="total-amount">₹ 0.00</div>
-                    </div>
-                </div>
-                <div class="stat-chart">
-                    <canvas id="categoryChart"></canvas>
-                </div>
+                <div class="stat-main"><div class="stat-card">
+                    <span class="stat-label">Total Spent</span>
+                    <div class="stat-value" id="total-amount">₹ 0.00</div>
+                </div></div>
+                <div class="stat-chart"><canvas id="categoryChart"></canvas></div>
             </div>
 
             <div class="table-container">
@@ -125,66 +114,51 @@
                             <th class="text-center">Edit</th>
                         </tr>
                     </thead>
-                    <tbody id="expense-tbody">
-                        <!-- Real-time data -->
-                    </tbody>
+                    <tbody id="expense-tbody"></tbody>
                 </table>
-                <div class="empty-state" id="empty-state">
-                    <p>No data found in this view.</p>
-                </div>
+                <div class="empty-state" id="empty-state">No data in this view.</div>
             </div>
         </main>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Login Screen Shell -->
+    <div id="login-ui" class="login-screen">
+        <div class="login-card">
+            <h1>Family Expense 🔐</h1>
+            <p>Please sign in to access your family reports.</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" required placeholder="family@expenses.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary">Sign In</button>
+            </form>
+            <div id="login-error" class="error-msg"></div>
+            <div class="login-footer">Privacy Protected by Google Firebase</div>
+        </div>
+    </div>
+
     <div id="editModal" class="modal">
         <div class="modal-content">
             <h3>Edit Entry</h3>
             <input type="hidden" id="edit-id">
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" id="edit-date">
-            </div>
-            <div class="form-group">
-                <label>Spender</label>
-                <select id="edit-spender">
-                    <option value="Indra">Indra</option>
-                    <option value="Wife">Wife</option>
-                    <option value="Other">Other Family</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Category</label>
-                <select id="edit-category">
-                    <option value="Grocery">Grocery</option>
-                    <option value="Medicines">Medicines</option>
-                    <option value="Hotel">Hotel</option>
-                    <option value="snacks">snacks</option>
-                    <option value="travel">travel</option>
-                    <option value="shopping">shopping</option>
-                    <option value="Utility">Utility</option>
-                    <option value="Fruits">Fruits</option>
-                    <option value="hospital">hospital</option>
-                    <option value="Others">Others</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Remarks</label>
-                <input type="text" id="edit-remarks">
-            </div>
-            <div class="form-group">
-                <label>Amount</label>
-                <input type="number" id="edit-amount">
-            </div>
+            <div class="form-group"><label>Date</label><input type="date" id="edit-date"></div>
+            <div class="form-group"><label>Spender</label><select id="edit-spender"><option value="Indra">Indra</option><option value="Wife">Wife</option><option value="Other">Other Family</option></select></div>
+            <div class="form-group"><label>Category</label><select id="edit-category"><option value="Grocery">Grocery</option><option value="Medicines">Medicines</option><option value="Hotel">Hotel</option><option value="snacks">snacks</option><option value="travel">travel</option><option value="shopping">shopping</option><option value="Utility">Utility</option><option value="Fruits">Fruits</option><option value="hospital">hospital</option><option value="Others">Others</option></select></div>
+            <div class="form-group"><label>Remarks</label><input type="text" id="edit-remarks"></div>
+            <div class="form-group"><label>Amount</label><input type="number" id="edit-amount"></div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-danger" onclick="confirmDelete()">Delete Entry</button>
-                <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+                <button class="btn btn-primary" onclick="saveEdit()">Save</button>
             </div>
         </div>
     </div>
     
-    <!-- Firebase SDKs -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
