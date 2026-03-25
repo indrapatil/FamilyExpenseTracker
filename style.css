@@ -100,10 +100,52 @@ th { background: #f8fafc; font-size: 0.75rem; text-transform: uppercase; color: 
 .modal-content { background: white; padding: 30px; border-radius: 12px; width: 400px; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
+/* Footer Actions */
+.footer-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+.btn-outline-lg, .btn-success-lg {
+    flex: 1;
+    padding: 15px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+}
+.btn-outline-lg { background: white; border: 2px solid var(--border-color); color: var(--text-main); }
+.btn-success-lg { background: var(--success); border: none; color: white; }
+
+.btn-outline-lg:hover { border-color: var(--primary); color: var(--primary); }
+.btn-success-lg:hover { filter: brightness(1.1); }
+
 @media (max-width: 900px) {
     .dashboard { flex-direction: column; height: auto; }
-    .sidebar { width: 100%; position: static; height: auto; }
+    .sidebar { width: 100%; position: static; height: auto; padding: 20px; border-right: none; border-bottom: 1px solid var(--border-color); }
     .main-content { padding: 20px; }
+    .stats-row { flex-direction: column; gap: 20px; }
+    .stat-chart { max-height: 200px; }
+    .top-nav { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .nav-links { width: 100%; overflow-x: auto; padding-bottom: 5px; }
+    .footer-actions { flex-direction: column; }
+    .btn-outline-lg, .btn-success-lg { width: 100%; }
+}
+
+@media (max-width: 600px) {
+    .report-header { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .report-header h1 { font-size: 1.4rem; }
+    .stat-value { font-size: 1.8rem; }
+    th:nth-child(4), td:nth-child(4) { display: none; } /* Hide remarks on very small screens */
+    .filter-bar { padding: 10px; }
+    .filter-group { font-size: 0.75rem; }
 }
 
 /* V4 Interactivity Styles */

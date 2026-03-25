@@ -84,8 +84,7 @@
                     <p class="date-range" id="report-date-range">Syncing...</p>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-outline" onclick="exportToExcel()">📥 Export XLSX</button>
-                    <button class="btn btn-success" onclick="archiveCurrent()">📁 Start Fresh</button>
+                    <!-- Buttons moved to bottom -->
                 </div>
             </header>
 
@@ -156,6 +155,10 @@
                     <tbody id="expense-tbody"></tbody>
                 </table>
                 <div class="empty-state" id="empty-state">No data in this view.</div>
+            </div>
+            <div class="footer-actions">
+                <button class="btn-outline-lg" onclick="exportToExcel()">📥 Export Expense Report (XLSX)</button>
+                <button class="btn-success-lg" onclick="archiveCurrent()">📁 Archive & Start Fresh</button>
             </div>
         </main>
     </div>
